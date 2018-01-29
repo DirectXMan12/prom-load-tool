@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"math/rand"
 	"net/http"
@@ -75,6 +76,9 @@ func randomFamilies(numFamilies, maxSeriesPerFamily int, r *rand.Rand) []*promdt
 }
 
 func main() {
+	listenAddr := flag.String("listen-address", ":8080", "the address and port on which to serve metrics")
+	flag.Parse()
+
 	if len(os.Args) != 3 {
 		log.Fatalf("usage: %s NUM_RANDOM_FAMILIES MAX_SERIES_PER_FAMILY\n", os.Args[0])
 		os.Exit(1)
@@ -138,5 +142,5 @@ func main() {
 	}()
 
 	http.Handle("/metrics", promhttp.HandlerFor(gatherer, promhttp.HandlerOpts{}))
-	log.Fatal(http.ListenAndServe("localhost:8675", nil))
+	log.Fatal(http.ListenAndServe(*listenAddr, nil))
 }
