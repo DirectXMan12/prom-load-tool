@@ -78,6 +78,9 @@ func randomFamilies(numFamilies, maxSeriesPerFamily int, r *rand.Rand) []*promdt
 func main() {
 	listenAddr := flag.String("listen-address", ":8080", "the address and port on which to serve metrics")
 	seed := flag.Int64("random-seed", time.Now().UnixNano(), "the seed to use (may be set for deterministic metrics generation, defaults to current time)")
+	turnoverRate := flag.Int("turnover-rate", 6, "the minimum number of series to replace per family at each turnover interval, as the denominator of a fraction of the total series (0 to disable)")
+	turnoverInterval := flag.Duration("turnover-interval", 15*time.Second, "the interval at which to replace series in each family")
+
 	flag.Parse()
 	args := flag.Args()
 
@@ -127,12 +130,20 @@ func main() {
 	}
 
 	go func() {
+		if *turnoverRate == 0 {
+			return
+		}
 		for {
-			time.Sleep(15 * time.Second)
+			time.Sleep(*turnoverInterval)
 			mu.Lock()
 			start := time.Now()
 			for _, family := range allSeriesInfo {
-				numToReplace := r.Intn(5*len(family.Metric)/6) + len(family.Metric)/6
+				mostOfSeries := (*turnoverRate - 1) * len(family.Metric) / (*turnoverRate)
+				minPortion := len(family.Metric) / (*turnoverRate)
+				numToReplace := len(family.Metric)
+				if mostOfSeries > 0 {
+					numToReplace = r.Intn(mostOfSeries) + minPortion
+				}
 				newMetrics := randomSeries(numToReplace, r)
 				for i, series := range newMetrics {
 					family.Metric[i] = series
