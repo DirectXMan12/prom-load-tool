@@ -77,21 +77,23 @@ func randomFamilies(numFamilies, maxSeriesPerFamily int, r *rand.Rand) []*promdt
 
 func main() {
 	listenAddr := flag.String("listen-address", ":8080", "the address and port on which to serve metrics")
+	seed := flag.Int64("random-seed", time.Now().UnixNano(), "the seed to use (may be set for deterministic metrics generation, defaults to current time)")
 	flag.Parse()
+	args := flag.Args()
 
-	if len(os.Args) != 3 {
+	if len(args) != 2 {
 		log.Fatalf("usage: %s NUM_RANDOM_FAMILIES MAX_SERIES_PER_FAMILY\n", os.Args[0])
 		os.Exit(1)
 	}
 
-	numFamilies, err := strconv.Atoi(os.Args[1])
+	numFamilies, err := strconv.Atoi(args[0])
 	if err != nil {
 		log.Printf("usage: %s NUM_RANDOM_FAMILIES MAX_SERIES_PER_FAMILY\n", os.Args[0])
 		log.Fatalf("error: NUM_RANDOM_FAMILIES must be an integer: %v", err)
 		os.Exit(2)
 	}
 
-	maxSeriesPerFamily, err := strconv.Atoi(os.Args[2])
+	maxSeriesPerFamily, err := strconv.Atoi(args[1])
 	if err != nil {
 		log.Printf("usage: %s NUM_RANDOM_METRICS MAX_SERIES_PER_FAMILY\n", os.Args[0])
 		log.Fatalf("error: MAX_SERIES_PER_FAMILY must be an integer: %v", err)
@@ -99,7 +101,7 @@ func main() {
 	}
 
 	startTime := time.Now()
-	r := rand.New(rand.NewSource(0))
+	r := rand.New(rand.NewSource(*seed))
 	allSeriesInfo := randomFamilies(numFamilies, maxSeriesPerFamily, r)
 	log.Printf("Done generating random series: %s", time.Now().Sub(startTime))
 
